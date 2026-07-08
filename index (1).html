@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>誘致先候補リスト</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --surface:#f7f7f5;
+    --border:#e5e3dd;
+    --border-strong:#c9c6bd;
+    --text:#2b2a27;
+    --text-secondary:#6b6862;
+    --text-muted:#9a978f;
+    --accent:#3b6ea5;
+    --green-bg:#eaf3de; --green-fg:#27500a;
+    --coral-bg:#faece7; --coral-fg:#712b13;
+    --gray-bg:#f1efe8; --gray-fg:#5a5750;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Hiragino Sans","Yu Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:520px;margin:0 auto;padding:12px 14px 60px}
+  .header{
+    position:sticky; top:0; background:var(--bg);
+    padding:10px 0 8px; z-index:10; border-bottom:1px solid var(--border);
+  }
+  .search{
+    width:100%; padding:10px 12px; border:1px solid var(--border-strong);
+    border-radius:10px; font-size:14px; margin-bottom:8px; background:var(--surface);
+  }
+  .tabs{display:flex; gap:6px}
+  .tab{
+    flex:1; padding:8px 4px; font-size:13px; text-align:center;
+    border:1px solid var(--border-strong); border-radius:8px;
+    background:var(--bg); color:var(--text-secondary); cursor:pointer;
+  }
+  .tab.active{ background:var(--text); color:#fff; border-color:var(--text); }
+  .status{ padding:16px 4px; color:var(--text-muted); font-size:13px; text-align:center }
+  .list{ display:flex; flex-direction:column; gap:10px; margin-top:12px }
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; cursor:pointer;
+  }
+  .card-title{ font-weight:600; font-size:15px; line-height:1.4 }
+  .badges{ display:flex; gap:6px; margin:8px 0 6px; flex-wrap:wrap }
+  .badge{ font-size:11px; padding:3px 8px; border-radius:6px; background:var(--gray-bg); color:var(--gray-fg) }
+  .badge.trade-yes{ background:var(--green-bg); color:var(--green-fg) }
+  .badge.trade-no{ background:var(--coral-bg); color:var(--coral-fg) }
+  .row-line{ font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:4px; margin-top:2px }
+  .chevron{ text-align:right; margin-top:6px; color:var(--text-muted); font-size:12px }
+  .detail{ margin-top:10px; padding-top:8px }
+  .drow{
+    display:flex; justify-content:space-between; gap:12px; padding:7px 0;
+    border-top:1px solid var(--border); font-size:13px;
+  }
+  .drow .label{ color:var(--text-secondary); font-size:12px; white-space:nowrap; flex-shrink:0 }
+  .drow .value{ text-align:right }
+  .drow a{ color:var(--accent); text-decoration:none }
+  .photos{ display:flex; gap:6px; margin:10px 0 4px }
+  .photo{
+    width:60px; height:60px; border-radius:8px; overflow:hidden;
+    background:var(--gray-bg); display:flex; align-items:center; justify-content:center;
+  }
+  .photo img{ width:100%; height:100%; object-fit:cover }
+  .photo.empty{ color:var(--text-muted); font-size:11px }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <input class="search" id="searchInput" type="text" placeholder="薬局名・エリアで検索">
+    <div class="tabs">
+      <div class="tab active" data-t="all">全部</div>
+      <div class="tab" data-t="医療モール型">モール型</div>
+      <div class="tab" data-t="一般クリニック型">クリニック型</div>
+    </div>
+  </div>
+  <div id="status" class="status">読み込み中...</div>
+  <div id="list" class="list"></div>
+</div>
+
+<script>
+// ↓↓↓ ここをGASのウェブアプリURLに差し替え ↓↓↓
+const API_URL = "https://script.google.com/a/macros/kinkiyoken.co.jp/s/AKfycbx975KeHXrbaemXikaL1NSApU1aI2jpfp3bcEN1Ijz-LSalm2swYvzpzh7EI87Pj1YJ/exec";
+
+let allData = [];
+let currentTab = 'all';
+let expandedIndex = null;
+
+async function loadData(){
+  const statusEl = document.getElementById('status');
+  try{
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    allData = await res.json();
+    statusEl.style.display = 'none';
+    render();
+  }catch(err){
+    statusEl.textContent = 'データの読み込みに失敗しました（' + err.message + '）';
+  }
+}
+
+function esc(s){
+  if(s === undefined || s === null) return '';
+  return String(s);
+}
+
+function mapLink(address){
+  if(!address) return '';
+  const url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
+  return `<a href="${url}" target="_blank" rel="noopener">${esc(address)} ↗</a>`;
+}
+
+function drow(label, valueHtml){
+  if(!valueHtml) return '';
+  return `<div class="drow"><span class="label">${label}</span><span class="value">${valueHtml}</span></div>`;
+}
+
+function photoBlock(d){
+  const urls = [d['写真URL①'], d['写真URL②'], d['写真URL③']].filter(Boolean);
+  if(urls.length === 0){
+    return `<div class="photos">${[1,2,3].map(()=>'<div class="photo empty">写真なし</div>').join('')}</div>`;
+  }
+  const slots = [0,1,2].map(i=>{
+    if(urls[i]) return `<a class="photo" href="${urls[i]}" target="_blank" rel="noopener"><img src="${urls[i]}" loading="lazy"></a>`;
+    return `<div class="photo empty"></div>`;
+  });
+  return `<div class="photos">${slots.join('')}</div>`;
+}
+
+function cardHtml(d, idx){
+  const isMall = d['分類'] === '医療モール型';
+  const tradeVal = (d['既存臨床取引'] || '').trim();
+  const tradeClass = tradeVal === '〇' ? 'trade-yes' : (tradeVal === '×' ? 'trade-no' : '');
+  const expanded = expandedIndex === idx;
+
+  let html = `<div class="card" data-idx="${idx}">
+    <div class="card-title">${esc(d['薬局名（基準地点）'])}</div>
+    <div class="badges">
+      <span class="badge">${esc(d['分類'])}</span>
+      <span class="badge ${tradeClass}">${tradeVal || '不明'}</span>
+    </div>
+    <div class="row-line">📍 ${esc(d['エリア'])}</div>`;
+
+  if(expanded){
+    html += `<div class="detail">`;
+    html += photoBlock(d);
+    html += drow('対象施設', `<b>${esc(d['施設名'])}</b>`);
+    html += drow('所在地', mapLink(d['所在地']));
+    html += drow('空きテナント/空き地', esc(d['空きテナント面積(坪)／空き地面積(坪)']));
+    html += drow('賃料目安／坪単価', esc(d['賃料目安／想定坪単価']));
+    html += drow('既存テナント診療科', esc(d['既存テナント診療科構成（モール型のみ）']));
+    html += drow('用途地域', esc(d['用途地域（クリニック型のみ）']));
+    html += drow('連絡先', esc(d['管理会社・地主/仲介先連絡先']));
+    html += drow('アクセス', esc(d['アクセス（最寄駅・幹線道路）']));
+    html += drow('周辺医療機関', esc(d['周辺医療機関（診療科:距離、カンマ区切り）']));
+    html += drow('不足診療科', `<b>${esc(d['不足していそうな診療科（誘致ターゲット候補）'])}</b>`);
+    html += drow('更新日', esc(d['情報更新日']));
+    html += drow('備考', esc(d['備考']));
+    html += `</div><div class="chevron">閉じる ▲</div>`;
+  } else {
+    html += `<div class="chevron">詳細を見る ▼</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function render(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = allData.filter(d=>{
+    if(currentTab !== 'all' && d['分類'] !== currentTab) return false;
+    if(q){
+      const hay = (esc(d['薬局名（基準地点）']) + esc(d['エリア']) + esc(d['施設名'])).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const listEl = document.getElementById('list');
+  if(filtered.length === 0){
+    listEl.innerHTML = '<div class="status">該当する候補がありません</div>';
+    return;
+  }
+  listEl.innerHTML = filtered.map((d)=>{
+    const realIdx = allData.indexOf(d);
+    return cardHtml(d, realIdx);
+  }).join('');
+}
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    currentTab = tab.dataset.t;
+    render();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', render);
+
+document.getElementById('list').addEventListener('click', (e)=>{
+  const card = e.target.closest('.card');
+  if(!card) return;
+  // リンクや画像タップの場合はカード開閉させない
+  if(e.target.closest('a')) return;
+  const idx = Number(card.dataset.idx);
+  expandedIndex = (expandedIndex === idx) ? null : idx;
+  render();
+});
+
+loadData();
+</script>
+</body>
+</html>
