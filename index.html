@@ -44,7 +44,7 @@
     .search{max-width:420px}
     .tabs{max-width:420px}
     .list{
-      display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
       align-items:start; gap:14px;
     }
   }
@@ -135,6 +135,7 @@
     padding:6px 11px; background:var(--accent-soft); border-radius:20px; display:inline-flex;
     align-items:center; gap:4px;
   }
+  .doclink-empty{ background:var(--unk-bg); color:var(--ink-mute); font-weight:400 }
 
   .spec{ display:flex; flex-direction:column }
 
@@ -276,13 +277,16 @@ function photoBlock(d){
   return `<div class="gallery">${slots.join('')}</div>`;
 }
 
-function docBlock(d){
+function docBlock(g){
   const docs = [
-    {label:'関連資料①', url:d['関連資料URL①']},
-    {label:'関連資料②', url:d['関連資料URL②']}
-  ].filter(x=>x.url);
-  if(docs.length === 0) return '';
-  return `<div class="docs">${docs.map(x=>`<a class="doclink" href="${x.url}" target="_blank" rel="noopener">📄 ${x.label}</a>`).join('')}</div>`;
+    {label:'関連資料①', url:g['関連資料URL①']},
+    {label:'関連資料②', url:g['関連資料URL②']}
+  ];
+  const chips = docs.map(x=> x.url
+    ? `<a class="doclink" href="${x.url}" target="_blank" rel="noopener">📄 ${x.label}</a>`
+    : `<span class="doclink doclink-empty">📄 ${x.label} 未登録</span>`
+  );
+  return `<div class="docs">${chips.join('')}</div>`;
 }
 
 function facilityListHtml(facilities){
