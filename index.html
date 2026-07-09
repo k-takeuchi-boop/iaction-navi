@@ -19,8 +19,8 @@
     --accent:#1f3b57;
     --accent-soft:#e7edf1;
     --mall-bg:#e4efec; --mall-fg:#245d4e;
-    --clinic-fg:#8a5a2b;
-    --clinic-bg2:#f3eadc;
+    --clinic-fg:#c2570c;
+    --clinic-bg2:#fceadb;
     --yes-bg:#e6f1e4; --yes-fg:#2f6b3f;
     --no-bg:#f6e7e0; --no-fg:#b5482a;
     --unk-bg:#f1efe8; --unk-fg:#5a5750;
@@ -259,6 +259,21 @@ function mapLink(address){
   return `<a href="${url}" target="_blank" rel="noopener">${esc(address)} ↗</a>`;
 }
 
+function formatDateDisplay(v){
+  if(!v) return '';
+  const s = String(v);
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){
+    const d = new Date(s);
+    if(!isNaN(d)){
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}/${m}/${day}`;
+    }
+  }
+  return s;
+}
+
 function drow(label, valueHtml, hi){
   const display = valueHtml ? valueHtml : '<span class="placeholder">未入力</span>';
   return `<div class="drow${hi?' hi':''}"><span class="label">${label}</span><span class="value">${display}</span></div>`;
@@ -342,7 +357,7 @@ function cardHtml(g, idx){
     html += drow('アクセス', esc(g['アクセス（最寄駅・幹線道路）']));
     html += drow('周辺医療機関', esc(g['周辺医療機関（診療科:距離、カンマ区切り）']));
     html += drow('不足診療科', esc(g['不足していそうな診療科（誘致ターゲット候補）']) ? `<b>${esc(g['不足していそうな診療科（誘致ターゲット候補）'])}</b>` : '');
-    html += drow('更新日', esc(g['情報更新日']));
+    html += drow('更新日', esc(formatDateDisplay(g['情報更新日'])));
     html += drow('備考', esc(g['備考']));
     html += `</div>`;
     html += `</div><div class="chevron">閉じる ▲</div>`;
