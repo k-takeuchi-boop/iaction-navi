@@ -38,17 +38,6 @@
 
   #app{max-width:560px;margin:0 auto;padding:0 14px 70px}
 
-  @media (min-width: 760px){
-    #app{max-width:1120px; padding:0 32px 70px}
-    .header{padding:22px 0 14px}
-    .search{max-width:420px}
-    .tabs{max-width:420px}
-    .list{
-      display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
-      align-items:start; gap:14px;
-    }
-  }
-
   .header{
     position:sticky; top:0; background:var(--bg);
     padding:16px 0 10px; z-index:20;
@@ -158,6 +147,17 @@
   .drow.hi .value{ font-weight:800; font-size:14.5px; color:var(--accent) }
   .drow a{ color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent); }
   .placeholder{ color:var(--ink-mute) }
+
+  @media (min-width: 760px){
+    #app{max-width:1120px; padding:0 32px 70px}
+    .header{padding:22px 0 14px}
+    .search{max-width:420px}
+    .tabs{max-width:420px}
+    .list{
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+      align-items:start; gap:14px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -327,8 +327,7 @@ function cardHtml(g, idx){
     </div>
     <div class="badges">
       ${vacBadge}
-      <span class="badge ${isMall?'tag-mall':'tag-clinic'}">${esc(g['分類'])}</span>
-      <span class="badge ${summary.cls}">${summary.label}${multi ? '（施設' + g.facilities.length + '件）' : ''}</span>
+      <span class="badge ${isMall?'tag-mall':'tag-clinic'}">${esc(g['分類'])}${multi ? '・施設' + g.facilities.length + '件' : ''}</span>
     </div>
     <div class="row-line">📍 ${g['所在地'] ? esc(g['所在地']) : '<span class="muted">住所調査中</span>'}</div>`;
 
