@@ -6,7 +6,7 @@
 <title>誘致先候補リスト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#f5f4ef;
@@ -34,9 +34,20 @@
     color:var(--ink);
     -webkit-font-smoothing:antialiased;
   }
-  .disp{ font-family:"Shippori Mincho", serif }
+
 
   #app{max-width:560px;margin:0 auto;padding:0 14px 70px}
+
+  @media (min-width: 760px){
+    #app{max-width:1120px; padding:0 32px 70px}
+    .header{padding:22px 0 14px}
+    .search{max-width:420px}
+    .tabs{max-width:420px}
+    .list{
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+      align-items:start; gap:14px;
+    }
+  }
 
   .header{
     position:sticky; top:0; background:var(--bg);
@@ -47,7 +58,7 @@
     margin-bottom:10px;
   }
   .eyebrow .name{
-    font-family:"Shippori Mincho", serif; font-weight:700; font-size:19px;
+    font-weight:800; font-size:19px;
     letter-spacing:.02em; color:var(--ink);
   }
   .eyebrow .count{ font-size:12px; color:var(--ink-mute) }
@@ -86,7 +97,7 @@
   .card.t-clinic::before{ background:var(--clinic-fg) }
 
   .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px }
-  .card-title{ font-family:"Shippori Mincho", serif; font-weight:700; font-size:16px; line-height:1.45 }
+  .card-title{ font-weight:700; font-size:16px; line-height:1.45 }
   .listno{ font-size:10px; color:var(--ink-mute); letter-spacing:.06em; white-space:nowrap; padding-top:3px; font-variant-numeric:tabular-nums }
 
   .badges{ display:flex; gap:6px; margin:9px 0 7px; flex-wrap:wrap }
@@ -96,6 +107,8 @@
   .badge.trade-yes{ background:var(--yes-bg); color:var(--yes-fg) }
   .badge.trade-no{ background:var(--no-bg); color:var(--no-fg) }
   .badge.trade-unk{ background:var(--unk-bg); color:var(--unk-fg) }
+  .badge.vac-yes{ background:var(--accent); color:#fff; font-weight:700 }
+  .badge.vac-no{ background:var(--unk-bg); color:var(--ink-mute) }
 
   .row-line{ font-size:13px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; margin-top:3px }
   .row-line .muted{ color:var(--ink-mute) }
@@ -124,6 +137,13 @@
   }
 
   .spec{ display:flex; flex-direction:column }
+
+  .facility-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px }
+  .facility-row{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:8px 10px; background:var(--accent-soft); border-radius:8px;
+  }
+  .facility-name{ font-size:13px; font-weight:500; color:var(--ink) }
   .drow{
     display:flex; justify-content:space-between; gap:14px; padding:9px 0;
     border-top:1px solid var(--border); font-size:13px;
@@ -134,7 +154,7 @@
     padding-top:2px; letter-spacing:.03em;
   }
   .drow .value{ text-align:right; color:var(--ink); line-height:1.5 }
-  .drow.hi .value{ font-family:"Shippori Mincho", serif; font-weight:700; font-size:14.5px; color:var(--accent) }
+  .drow.hi .value{ font-weight:800; font-size:14.5px; color:var(--accent) }
   .drow a{ color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent); }
   .placeholder{ color:var(--ink-mute) }
 </style>
@@ -193,12 +213,42 @@ function loadDataJSONP(){
 async function loadData(){
   const statusEl = document.getElementById('status');
   try{
-    allData = await loadDataJSONP();
+    const raw = await loadDataJSONP();
+    allData = groupData(raw);
     statusEl.style.display = 'none';
     render();
   }catch(err){
     statusEl.textContent = 'データの読み込みに失敗しました（' + err.message + '）';
   }
+}
+
+const SHARED_FIELDS = [
+  '所在地','空きテナント面積(坪)／空き地面積(坪)','賃料目安／想定坪単価',
+  '既存テナント診療科構成（モール型のみ）','用途地域（クリニック型のみ）',
+  '管理会社・地主/仲介先連絡先','アクセス（最寄駅・幹線道路）',
+  '周辺医療機関（診療科:距離、カンマ区切り）','不足していそうな診療科（誘致ターゲット候補）',
+  '誘致余地','情報更新日','備考',
+  '写真URL①','写真URL②','写真URL③','関連資料URL①','関連資料URL②'
+];
+
+function groupData(rows){
+  const map = new Map();
+  rows.forEach(d=>{
+    const key = d['薬局名（基準地点）'];
+    if(!map.has(key)){
+      map.set(key, { base:key, 分類:d['分類'], facilities:[] });
+    }
+    const g = map.get(key);
+    if(!g.分類 && d['分類']) g.分類 = d['分類'];
+    g.facilities.push({
+      name: d['施設名'],
+      trade: (d['既存臨床取引'] || '').trim()
+    });
+    SHARED_FIELDS.forEach(f=>{
+      if(!g[f] && d[f]) g[f] = d[f];
+    });
+  });
+  return Array.from(map.values());
 }
 
 function esc(s){
@@ -235,41 +285,66 @@ function docBlock(d){
   return `<div class="docs">${docs.map(x=>`<a class="doclink" href="${x.url}" target="_blank" rel="noopener">📄 ${x.label}</a>`).join('')}</div>`;
 }
 
-function cardHtml(d, idx){
-  const isMall = d['分類'] === '医療モール型';
-  const tradeVal = (d['既存臨床取引'] || '').trim();
-  const tradeClass = tradeVal === '〇' ? 'trade-yes' : (tradeVal === '×' ? 'trade-no' : 'trade-unk');
+function facilityListHtml(facilities){
+  return facilities.map(f=>{
+    const cls = f.trade === '〇' ? 'trade-yes' : (f.trade === '×' ? 'trade-no' : 'trade-unk');
+    return `<div class="facility-row">
+      <span class="facility-name">${esc(f.name)}</span>
+      <span class="badge ${cls}">取引 ${f.trade || '不明'}</span>
+    </div>`;
+  }).join('');
+}
+
+function tradeSummary(facilities){
+  const vals = facilities.map(f=>f.trade);
+  if(vals.every(v=>v==='〇')) return {cls:'trade-yes', label:'取引あり'};
+  if(vals.every(v=>v==='×')) return {cls:'trade-no', label:'取引なし'};
+  if(vals.some(v=>v==='〇')) return {cls:'trade-yes', label:'一部取引あり'};
+  return {cls:'trade-unk', label:'取引状況 不明'};
+}
+
+function cardHtml(g, idx){
+  const isMall = g['分類'] === '医療モール型';
+  const summary = tradeSummary(g.facilities);
+  const vacVal = (g['誘致余地'] || '').trim();
+  const vacBadge = vacVal === 'あり'
+    ? `<span class="badge vac-yes">◎ 誘致余地あり</span>`
+    : (vacVal === 'なし'
+      ? `<span class="badge vac-no">誘致余地なし</span>`
+      : `<span class="badge vac-no">誘致余地 未調査</span>`);
   const expanded = expandedIndex === idx;
   const listNo = 'NO. ' + String(idx + 1).padStart(3, '0');
+  const multi = g.facilities.length > 1;
 
   let html = `<div class="card ${isMall?'t-mall':'t-clinic'}" data-idx="${idx}">
     <div class="card-top">
-      <div class="card-title">${esc(d['薬局名（基準地点）'])}</div>
+      <div class="card-title">${esc(g.base)}</div>
       <div class="listno">${listNo}</div>
     </div>
     <div class="badges">
-      <span class="badge ${isMall?'tag-mall':'tag-clinic'}">${esc(d['分類'])}</span>
-      <span class="badge ${tradeClass}">取引 ${tradeVal || '不明'}</span>
+      ${vacBadge}
+      <span class="badge ${isMall?'tag-mall':'tag-clinic'}">${esc(g['分類'])}</span>
+      <span class="badge ${summary.cls}">${summary.label}${multi ? '（施設' + g.facilities.length + '件）' : ''}</span>
     </div>
-    <div class="row-line">📍 ${d['所在地'] ? esc(d['所在地']) : '<span class="muted">住所調査中</span>'}</div>`;
+    <div class="row-line">📍 ${g['所在地'] ? esc(g['所在地']) : '<span class="muted">住所調査中</span>'}</div>`;
 
   if(expanded){
     html += `<div class="detail">`;
-    html += photoBlock(d);
-    html += docBlock(d);
+    html += photoBlock(g);
+    html += docBlock(g);
+    html += `<div class="facility-list">${facilityListHtml(g.facilities)}</div>`;
     html += `<div class="spec">`;
-    html += drow('対象施設', `<b>${esc(d['施設名'])}</b>`);
-    html += drow('所在地', mapLink(d['所在地']));
-    html += drow(isMall ? '空きテナント' : '周辺空き地', esc(d['空きテナント面積(坪)／空き地面積(坪)']), true);
-    html += drow(isMall ? '賃料目安' : '想定坪単価', esc(d['賃料目安／想定坪単価']), true);
-    html += drow('既存テナント診療科', esc(d['既存テナント診療科構成（モール型のみ）']));
-    html += drow('用途地域', esc(d['用途地域（クリニック型のみ）']));
-    html += drow('連絡先', esc(d['管理会社・地主/仲介先連絡先']));
-    html += drow('アクセス', esc(d['アクセス（最寄駅・幹線道路）']));
-    html += drow('周辺医療機関', esc(d['周辺医療機関（診療科:距離、カンマ区切り）']));
-    html += drow('不足診療科', esc(d['不足していそうな診療科（誘致ターゲット候補）']) ? `<b>${esc(d['不足していそうな診療科（誘致ターゲット候補）'])}</b>` : '');
-    html += drow('更新日', esc(d['情報更新日']));
-    html += drow('備考', esc(d['備考']));
+    html += drow('所在地', mapLink(g['所在地']));
+    html += drow(isMall ? '空きテナント' : '周辺空き地', esc(g['空きテナント面積(坪)／空き地面積(坪)']), true);
+    html += drow(isMall ? '賃料目安' : '想定坪単価', esc(g['賃料目安／想定坪単価']), true);
+    html += drow('既存テナント診療科', esc(g['既存テナント診療科構成（モール型のみ）']));
+    html += drow('用途地域', esc(g['用途地域（クリニック型のみ）']));
+    html += drow('連絡先', esc(g['管理会社・地主/仲介先連絡先']));
+    html += drow('アクセス', esc(g['アクセス（最寄駅・幹線道路）']));
+    html += drow('周辺医療機関', esc(g['周辺医療機関（診療科:距離、カンマ区切り）']));
+    html += drow('不足診療科', esc(g['不足していそうな診療科（誘致ターゲット候補）']) ? `<b>${esc(g['不足していそうな診療科（誘致ターゲット候補）'])}</b>` : '');
+    html += drow('更新日', esc(g['情報更新日']));
+    html += drow('備考', esc(g['備考']));
     html += `</div>`;
     html += `</div><div class="chevron">閉じる ▲</div>`;
   } else {
@@ -281,10 +356,11 @@ function cardHtml(d, idx){
 
 function render(){
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const filtered = allData.filter(d=>{
-    if(currentTab !== 'all' && d['分類'] !== currentTab) return false;
+  const filtered = allData.filter(g=>{
+    if(currentTab !== 'all' && g['分類'] !== currentTab) return false;
     if(q){
-      const hay = (esc(d['薬局名（基準地点）']) + esc(d['所在地']) + esc(d['施設名'])).toLowerCase();
+      const facilityNames = g.facilities.map(f=>f.name).join('');
+      const hay = (esc(g.base) + esc(g['所在地']) + facilityNames).toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -295,9 +371,9 @@ function render(){
     listEl.innerHTML = '<div class="status">該当する候補がありません</div>';
     return;
   }
-  listEl.innerHTML = filtered.map((d)=>{
-    const realIdx = allData.indexOf(d);
-    return cardHtml(d, realIdx);
+  listEl.innerHTML = filtered.map((g)=>{
+    const realIdx = allData.indexOf(g);
+    return cardHtml(g, realIdx);
   }).join('');
 }
 
