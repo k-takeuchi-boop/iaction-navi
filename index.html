@@ -135,6 +135,11 @@ function esc(s){
   return String(s);
 }
 
+function cleanArea(s){
+  if(!s) return '';
+  return String(s).replace(/【[^】]*】/g, '').trim();
+}
+
 function mapLink(address){
   if(!address) return '';
   const url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
@@ -147,13 +152,10 @@ function drow(label, valueHtml){
 }
 
 function photoBlock(d){
-  const urls = [d['写真URL①'], d['写真URL②'], d['写真URL③']].filter(Boolean);
-  if(urls.length === 0){
-    return `<div class="photos">${[1,2,3].map(()=>'<div class="photo empty">写真なし</div>').join('')}</div>`;
-  }
-  const slots = [0,1,2].map(i=>{
-    if(urls[i]) return `<a class="photo" href="${urls[i]}" target="_blank" rel="noopener"><img src="${urls[i]}" loading="lazy"></a>`;
-    return `<div class="photo empty"></div>`;
+  const urls = [d['写真URL①'], d['写真URL②'], d['写真URL③']];
+  const slots = urls.map(u=>{
+    if(u) return `<a class="photo" href="${u}" target="_blank" rel="noopener"><img src="${u}" loading="lazy"></a>`;
+    return `<div class="photo empty">NO IMAGE</div>`;
   });
   return `<div class="photos">${slots.join('')}</div>`;
 }
@@ -170,7 +172,7 @@ function cardHtml(d, idx){
       <span class="badge">${esc(d['分類'])}</span>
       <span class="badge ${tradeClass}">${tradeVal || '不明'}</span>
     </div>
-    <div class="row-line">📍 ${esc(d['エリア'])}</div>`;
+    <div class="row-line">📍 ${cleanArea(d['エリア'])}</div>`;
 
   if(expanded){
     html += `<div class="detail">`;
