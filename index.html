@@ -147,8 +147,8 @@ function mapLink(address){
 }
 
 function drow(label, valueHtml){
-  if(!valueHtml) return '';
-  return `<div class="drow"><span class="label">${label}</span><span class="value">${valueHtml}</span></div>`;
+  const display = valueHtml ? valueHtml : '<span style="color:var(--text-muted)">未入力</span>';
+  return `<div class="drow"><span class="label">${label}</span><span class="value">${display}</span></div>`;
 }
 
 function photoBlock(d){
@@ -172,7 +172,7 @@ function cardHtml(d, idx){
       <span class="badge">${esc(d['分類'])}</span>
       <span class="badge ${tradeClass}">${tradeVal || '不明'}</span>
     </div>
-    <div class="row-line">📍 ${cleanArea(d['エリア'])}</div>`;
+    <div class="row-line">📍 ${d['所在地'] ? esc(d['所在地']) : '<span style="color:var(--text-muted)">住所調査中</span>'}</div>`;
 
   if(expanded){
     html += `<div class="detail">`;
