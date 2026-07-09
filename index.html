@@ -4,78 +4,149 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>誘致先候補リスト</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#ffffff;
-    --surface:#f7f7f5;
-    --border:#e5e3dd;
-    --border-strong:#c9c6bd;
-    --text:#2b2a27;
-    --text-secondary:#6b6862;
-    --text-muted:#9a978f;
-    --accent:#3b6ea5;
-    --green-bg:#eaf3de; --green-fg:#27500a;
-    --coral-bg:#faece7; --coral-fg:#712b13;
-    --gray-bg:#f1efe8; --gray-fg:#5a5750;
+    --bg:#f5f4ef;
+    --surface:#ffffff;
+    --border:#e3e0d5;
+    --border-strong:#cfc9b7;
+    --ink:#20241e;
+    --ink-soft:#5b6259;
+    --ink-mute:#95978c;
+    --accent:#1f3b57;
+    --accent-soft:#e7edf1;
+    --mall-bg:#e4efec; --mall-fg:#245d4e;
+    --clinic-fg:#8a5a2b;
+    --clinic-bg2:#f3eadc;
+    --yes-bg:#e6f1e4; --yes-fg:#2f6b3f;
+    --no-bg:#f6e7e0; --no-fg:#b5482a;
+    --unk-bg:#f1efe8; --unk-fg:#5a5750;
   }
   *{box-sizing:border-box}
+  html{background:var(--bg)}
   body{
     margin:0;
-    font-family:"Hiragino Sans","Yu Gothic",sans-serif;
+    font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
     background:var(--bg);
-    color:var(--text);
+    color:var(--ink);
     -webkit-font-smoothing:antialiased;
   }
-  #app{max-width:520px;margin:0 auto;padding:12px 14px 60px}
+  .disp{ font-family:"Shippori Mincho", serif }
+
+  #app{max-width:560px;margin:0 auto;padding:0 14px 70px}
+
   .header{
     position:sticky; top:0; background:var(--bg);
-    padding:10px 0 8px; z-index:10; border-bottom:1px solid var(--border);
+    padding:16px 0 10px; z-index:20;
   }
+  .eyebrow{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .eyebrow .name{
+    font-family:"Shippori Mincho", serif; font-weight:700; font-size:19px;
+    letter-spacing:.02em; color:var(--ink);
+  }
+  .eyebrow .count{ font-size:12px; color:var(--ink-mute) }
+
   .search{
-    width:100%; padding:10px 12px; border:1px solid var(--border-strong);
+    width:100%; padding:11px 14px; border:1px solid var(--border-strong);
     border-radius:10px; font-size:14px; margin-bottom:8px; background:var(--surface);
+    color:var(--ink); font-family:inherit;
   }
-  .tabs{display:flex; gap:6px}
+  .search::placeholder{ color:var(--ink-mute) }
+
+  .tabs{display:flex; gap:6px; border-bottom:1px solid var(--border); padding-bottom:10px}
   .tab{
-    flex:1; padding:8px 4px; font-size:13px; text-align:center;
+    flex:1; padding:9px 4px; font-size:13px; text-align:center;
     border:1px solid var(--border-strong); border-radius:8px;
-    background:var(--bg); color:var(--text-secondary); cursor:pointer;
+    background:var(--surface); color:var(--ink-soft); cursor:pointer;
+    font-family:inherit; transition:background .15s, color .15s;
   }
-  .tab.active{ background:var(--text); color:#fff; border-color:var(--text); }
-  .status{ padding:16px 4px; color:var(--text-muted); font-size:13px; text-align:center }
-  .list{ display:flex; flex-direction:column; gap:10px; margin-top:12px }
+  .tab.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  .status{ padding:28px 4px; color:var(--ink-mute); font-size:13px; text-align:center }
+
+  .list{ display:flex; flex-direction:column; gap:12px; margin-top:14px }
+
   .card{
+    position:relative;
     background:var(--surface); border:1px solid var(--border);
-    border-radius:12px; padding:14px 16px; cursor:pointer;
+    border-radius:14px; padding:15px 16px 14px 18px; cursor:pointer;
+    box-shadow:0 1px 2px rgba(30,25,15,.03), 0 4px 14px rgba(30,25,15,.04);
+    overflow:hidden;
   }
-  .card-title{ font-weight:600; font-size:15px; line-height:1.4 }
-  .badges{ display:flex; gap:6px; margin:8px 0 6px; flex-wrap:wrap }
-  .badge{ font-size:11px; padding:3px 8px; border-radius:6px; background:var(--gray-bg); color:var(--gray-fg) }
-  .badge.trade-yes{ background:var(--green-bg); color:var(--green-fg) }
-  .badge.trade-no{ background:var(--coral-bg); color:var(--coral-fg) }
-  .row-line{ font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:4px; margin-top:2px }
-  .chevron{ text-align:right; margin-top:6px; color:var(--text-muted); font-size:12px }
-  .detail{ margin-top:10px; padding-top:8px }
+  .card::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:4px;
+  }
+  .card.t-mall::before{ background:var(--mall-fg) }
+  .card.t-clinic::before{ background:var(--clinic-fg) }
+
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px }
+  .card-title{ font-family:"Shippori Mincho", serif; font-weight:700; font-size:16px; line-height:1.45 }
+  .listno{ font-size:10px; color:var(--ink-mute); letter-spacing:.06em; white-space:nowrap; padding-top:3px; font-variant-numeric:tabular-nums }
+
+  .badges{ display:flex; gap:6px; margin:9px 0 7px; flex-wrap:wrap }
+  .badge{ font-size:11px; padding:3px 9px; border-radius:20px; font-weight:500 }
+  .badge.tag-mall{ background:var(--mall-bg); color:var(--mall-fg) }
+  .badge.tag-clinic{ background:var(--clinic-bg2); color:var(--clinic-fg) }
+  .badge.trade-yes{ background:var(--yes-bg); color:var(--yes-fg) }
+  .badge.trade-no{ background:var(--no-bg); color:var(--no-fg) }
+  .badge.trade-unk{ background:var(--unk-bg); color:var(--unk-fg) }
+
+  .row-line{ font-size:13px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; margin-top:3px }
+  .row-line .muted{ color:var(--ink-mute) }
+
+  .chevron{
+    text-align:right; margin-top:10px; color:var(--accent); font-size:12px; font-weight:500;
+    display:flex; justify-content:flex-end; align-items:center; gap:3px;
+  }
+
+  .detail{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-strong) }
+
+  .gallery{ display:flex; gap:8px; margin-bottom:10px; overflow-x:auto; padding-bottom:2px; scroll-snap-type:x proximity }
+  .photo{
+    flex:0 0 auto; width:104px; height:78px; border-radius:9px; overflow:hidden;
+    background:var(--accent-soft); display:flex; align-items:center; justify-content:center;
+    scroll-snap-align:start; border:1px solid var(--border);
+  }
+  .photo img{ width:100%; height:100%; object-fit:cover; display:block }
+  .photo.empty{ color:var(--ink-mute); font-size:10px; letter-spacing:.04em; font-weight:500 }
+
+  .docs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px }
+  .doclink{
+    font-size:12px; color:var(--accent); text-decoration:none; font-weight:500;
+    padding:6px 11px; background:var(--accent-soft); border-radius:20px; display:inline-flex;
+    align-items:center; gap:4px;
+  }
+
+  .spec{ display:flex; flex-direction:column }
   .drow{
-    display:flex; justify-content:space-between; gap:12px; padding:7px 0;
+    display:flex; justify-content:space-between; gap:14px; padding:9px 0;
     border-top:1px solid var(--border); font-size:13px;
   }
-  .drow .label{ color:var(--text-secondary); font-size:12px; white-space:nowrap; flex-shrink:0 }
-  .drow .value{ text-align:right }
-  .drow a{ color:var(--accent); text-decoration:none }
-  .photos{ display:flex; gap:6px; margin:10px 0 4px }
-  .photo{
-    width:60px; height:60px; border-radius:8px; overflow:hidden;
-    background:var(--gray-bg); display:flex; align-items:center; justify-content:center;
+  .drow:first-child{ border-top:none }
+  .drow .label{
+    color:var(--ink-mute); font-size:11px; white-space:nowrap; flex-shrink:0;
+    padding-top:2px; letter-spacing:.03em;
   }
-  .photo img{ width:100%; height:100%; object-fit:cover }
-  .photo.empty{ color:var(--text-muted); font-size:11px }
+  .drow .value{ text-align:right; color:var(--ink); line-height:1.5 }
+  .drow.hi .value{ font-family:"Shippori Mincho", serif; font-weight:700; font-size:14.5px; color:var(--accent) }
+  .drow a{ color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent); }
+  .placeholder{ color:var(--ink-mute) }
 </style>
 </head>
 <body>
 <div id="app">
   <div class="header">
-    <input class="search" id="searchInput" type="text" placeholder="薬局名・エリアで検索">
+    <div class="eyebrow">
+      <span class="name">誘致先候補リスト</span>
+      <span class="count" id="countLabel"></span>
+    </div>
+    <input class="search" id="searchInput" type="text" placeholder="薬局名・住所で検索">
     <div class="tabs">
       <div class="tab active" data-t="all">全部</div>
       <div class="tab" data-t="医療モール型">モール型</div>
@@ -135,20 +206,15 @@ function esc(s){
   return String(s);
 }
 
-function cleanArea(s){
-  if(!s) return '';
-  return String(s).replace(/【[^】]*】/g, '').trim();
-}
-
 function mapLink(address){
   if(!address) return '';
   const url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
   return `<a href="${url}" target="_blank" rel="noopener">${esc(address)} ↗</a>`;
 }
 
-function drow(label, valueHtml){
-  const display = valueHtml ? valueHtml : '<span style="color:var(--text-muted)">未入力</span>';
-  return `<div class="drow"><span class="label">${label}</span><span class="value">${display}</span></div>`;
+function drow(label, valueHtml, hi){
+  const display = valueHtml ? valueHtml : '<span class="placeholder">未入力</span>';
+  return `<div class="drow${hi?' hi':''}"><span class="label">${label}</span><span class="value">${display}</span></div>`;
 }
 
 function photoBlock(d){
@@ -157,38 +223,54 @@ function photoBlock(d){
     if(u) return `<a class="photo" href="${u}" target="_blank" rel="noopener"><img src="${u}" loading="lazy"></a>`;
     return `<div class="photo empty">NO IMAGE</div>`;
   });
-  return `<div class="photos">${slots.join('')}</div>`;
+  return `<div class="gallery">${slots.join('')}</div>`;
+}
+
+function docBlock(d){
+  const docs = [
+    {label:'関連資料①', url:d['関連資料URL①']},
+    {label:'関連資料②', url:d['関連資料URL②']}
+  ].filter(x=>x.url);
+  if(docs.length === 0) return '';
+  return `<div class="docs">${docs.map(x=>`<a class="doclink" href="${x.url}" target="_blank" rel="noopener">📄 ${x.label}</a>`).join('')}</div>`;
 }
 
 function cardHtml(d, idx){
   const isMall = d['分類'] === '医療モール型';
   const tradeVal = (d['既存臨床取引'] || '').trim();
-  const tradeClass = tradeVal === '〇' ? 'trade-yes' : (tradeVal === '×' ? 'trade-no' : '');
+  const tradeClass = tradeVal === '〇' ? 'trade-yes' : (tradeVal === '×' ? 'trade-no' : 'trade-unk');
   const expanded = expandedIndex === idx;
+  const listNo = 'NO. ' + String(idx + 1).padStart(3, '0');
 
-  let html = `<div class="card" data-idx="${idx}">
-    <div class="card-title">${esc(d['薬局名（基準地点）'])}</div>
-    <div class="badges">
-      <span class="badge">${esc(d['分類'])}</span>
-      <span class="badge ${tradeClass}">${tradeVal || '不明'}</span>
+  let html = `<div class="card ${isMall?'t-mall':'t-clinic'}" data-idx="${idx}">
+    <div class="card-top">
+      <div class="card-title">${esc(d['薬局名（基準地点）'])}</div>
+      <div class="listno">${listNo}</div>
     </div>
-    <div class="row-line">📍 ${d['所在地'] ? esc(d['所在地']) : '<span style="color:var(--text-muted)">住所調査中</span>'}</div>`;
+    <div class="badges">
+      <span class="badge ${isMall?'tag-mall':'tag-clinic'}">${esc(d['分類'])}</span>
+      <span class="badge ${tradeClass}">取引 ${tradeVal || '不明'}</span>
+    </div>
+    <div class="row-line">📍 ${d['所在地'] ? esc(d['所在地']) : '<span class="muted">住所調査中</span>'}</div>`;
 
   if(expanded){
     html += `<div class="detail">`;
     html += photoBlock(d);
+    html += docBlock(d);
+    html += `<div class="spec">`;
     html += drow('対象施設', `<b>${esc(d['施設名'])}</b>`);
     html += drow('所在地', mapLink(d['所在地']));
-    html += drow('空きテナント/空き地', esc(d['空きテナント面積(坪)／空き地面積(坪)']));
-    html += drow('賃料目安／坪単価', esc(d['賃料目安／想定坪単価']));
+    html += drow(isMall ? '空きテナント' : '周辺空き地', esc(d['空きテナント面積(坪)／空き地面積(坪)']), true);
+    html += drow(isMall ? '賃料目安' : '想定坪単価', esc(d['賃料目安／想定坪単価']), true);
     html += drow('既存テナント診療科', esc(d['既存テナント診療科構成（モール型のみ）']));
     html += drow('用途地域', esc(d['用途地域（クリニック型のみ）']));
     html += drow('連絡先', esc(d['管理会社・地主/仲介先連絡先']));
     html += drow('アクセス', esc(d['アクセス（最寄駅・幹線道路）']));
     html += drow('周辺医療機関', esc(d['周辺医療機関（診療科:距離、カンマ区切り）']));
-    html += drow('不足診療科', `<b>${esc(d['不足していそうな診療科（誘致ターゲット候補）'])}</b>`);
+    html += drow('不足診療科', esc(d['不足していそうな診療科（誘致ターゲット候補）']) ? `<b>${esc(d['不足していそうな診療科（誘致ターゲット候補）'])}</b>` : '');
     html += drow('更新日', esc(d['情報更新日']));
     html += drow('備考', esc(d['備考']));
+    html += `</div>`;
     html += `</div><div class="chevron">閉じる ▲</div>`;
   } else {
     html += `<div class="chevron">詳細を見る ▼</div>`;
@@ -202,11 +284,12 @@ function render(){
   const filtered = allData.filter(d=>{
     if(currentTab !== 'all' && d['分類'] !== currentTab) return false;
     if(q){
-      const hay = (esc(d['薬局名（基準地点）']) + esc(d['エリア']) + esc(d['施設名'])).toLowerCase();
+      const hay = (esc(d['薬局名（基準地点）']) + esc(d['所在地']) + esc(d['施設名'])).toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
+  document.getElementById('countLabel').textContent = allData.length ? (filtered.length + ' / ' + allData.length + ' 件') : '';
   const listEl = document.getElementById('list');
   if(filtered.length === 0){
     listEl.innerHTML = '<div class="status">該当する候補がありません</div>';
@@ -232,7 +315,6 @@ document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('list').addEventListener('click', (e)=>{
   const card = e.target.closest('.card');
   if(!card) return;
-  // リンクや画像タップの場合はカード開閉させない
   if(e.target.closest('a')) return;
   const idx = Number(card.dataset.idx);
   expandedIndex = (expandedIndex === idx) ? null : idx;
