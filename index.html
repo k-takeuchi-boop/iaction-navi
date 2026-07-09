@@ -169,9 +169,8 @@
     </div>
     <input class="search" id="searchInput" type="text" placeholder="薬局名・住所で検索">
     <div class="tabs">
-      <div class="tab active" data-t="all">全部</div>
-      <div class="tab" data-t="医療モール型">モール型</div>
-      <div class="tab" data-t="一般クリニック型">クリニック型</div>
+      <div class="tab active" data-t="all">すべて</div>
+      <div class="tab" data-t="recruiting">誘致場所あり</div>
     </div>
   </div>
   <div id="status" class="status">読み込み中...</div>
@@ -360,7 +359,7 @@ function cardHtml(g, idx){
 function render(){
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const filtered = allData.filter(g=>{
-    if(currentTab !== 'all' && g['分類'] !== currentTab) return false;
+    if(currentTab === 'recruiting' && (g['誘致余地'] || '').trim() !== 'あり') return false;
     if(q){
       const facilityNames = g.facilities.map(f=>f.name).join('');
       const hay = (esc(g.base) + esc(g['所在地']) + facilityNames).toLowerCase();
